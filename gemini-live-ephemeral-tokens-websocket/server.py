@@ -67,18 +67,17 @@ async def serve_static_file(request):
     """Serve static files from the frontend directory."""
     path = request.match_info.get("path", "index.html")
 
-    # Security: prevent directory traversal
-    path = path.lstrip("/")
-    if ".." in path:
-        return web.Response(text="Invalid path", status=400)
-
     # Default to index.html
+    path = path.lstrip("/")
     if not path or path == "/":
         path = "index.html"
 
-    # Get the full file path - serve from frontend folder
-    frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-    file_path = os.path.join(frontend_dir, path)
+    # Resolve and validate the path stays within frontend folder
+    frontend_dir = os.path.realpath(os.path.join(os.path.dirname(__file__), "frontend"))
+    file_path = os.path.realpath(os.path.join(frontend_dir, path))
+
+    if os.path.commonpath([frontend_dir, file_path]) != frontend_dir:
+        return web.Response(text="Invalid path", status=400)
 
     # Check if file exists
     if not os.path.exists(file_path) or not os.path.isfile(file_path):
